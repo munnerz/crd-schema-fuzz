@@ -33,6 +33,16 @@ func Fuzz(t *testing.T, scheme *runtime.Scheme, fuzzer *gofuzz.Fuzzer, crd *apie
 		Kind:  crd.Spec.Names.Kind,
 	}
 
+	var globalStructural *structuralschema.Structural
+	if crd.Spec.Validation != nil {
+		var err error
+		globalStructural, err = structuralschema.NewStructural(crd.Spec.Validation.OpenAPIV3Schema)
+		if err != nil {
+			t.Errorf("Failed to construct structural schema: %v", err)
+			return
+		}
+	}
+
 	for _, vers := range crd.Spec.Versions {
 		gvk := gk.WithVersion(vers.Name)
 		t.Run(gvk.String(), func(t *testing.T) {
@@ -42,10 +52,18 @@ func Fuzz(t *testing.T, scheme *runtime.Scheme, fuzzer *gofuzz.Fuzzer, crd *apie
 				return
 			}
 
-			structural, err := structuralschema.NewStructural(vers.Schema.OpenAPIV3Schema)
-			if err != nil {
-				t.Errorf("Failed to construct structural schema: %v", err)
-				return
+			structural := globalStructural
+			if structural == nil {
+				if vers.Schema == nil {
+					t.Errorf("GroupVersionKind %v has no schema defined, cannot run pruning tests")
+					return
+				}
+
+				structural, err = structuralschema.NewStructural(vers.Schema.OpenAPIV3Schema)
+				if err != nil {
+					t.Errorf("Failed to construct structural schema: %v", err)
+					return
+				}
 			}
 
 			ObjectNTimes(t, fuzzer, obj, structural, defaultIterations)
