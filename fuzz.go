@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// TODO: use "k8s.io/apimachinery/pkg/api/apitesting/fuzzer" instead of gofuzz directly
 func ObjectNTimes(t *testing.T, fuzzer *gofuzz.Fuzzer, obj runtime.Object, schema *structuralschema.Structural, iterations int) {
 	t.Logf("Running CRD schema pruning fuzz test for object %v", obj.GetObjectKind())
 	for i := 0; i < iterations; i++ {

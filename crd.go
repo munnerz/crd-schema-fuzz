@@ -61,7 +61,9 @@ func Fuzz(t *testing.T, scheme *runtime.Scheme, fuzzer *gofuzz.Fuzzer, crd *apie
 
 func DecodeFile(t *testing.T, path string) *apiextensionsv1.CustomResourceDefinition {
 	groupVersioner := schema.GroupVersions([]schema.GroupVersion{apiextensionsv1.SchemeGroupVersion})
-	serializer := apijson.NewSerializerWithOptions(apijson.DefaultMetaFactory, internalScheme, internalScheme, apijson.SerializerOptions{})
+	serializer := apijson.NewSerializerWithOptions(apijson.DefaultMetaFactory, internalScheme, internalScheme, apijson.SerializerOptions{
+		Yaml: true,
+	})
 	convertor := runtime.UnsafeObjectConvertor(internalScheme)
 	codec := versioning.NewCodec(serializer, serializer, convertor, internalScheme, internalScheme, internalScheme, groupVersioner, runtime.InternalGroupVersioner, internalScheme.Name())
 
