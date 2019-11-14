@@ -1,15 +1,30 @@
 package fuzz
 
 import (
+	"io/ioutil"
 	"testing"
 
 	gofuzz "github.com/google/gofuzz"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
+	apiextensionsinstall "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	structuralschema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	apijson "k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"k8s.io/apimachinery/pkg/runtime/serializer/versioning"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
+
+var (
+	internalScheme = runtime.NewScheme()
+)
+
+func init() {
+	utilruntime.Must(metav1.AddMetaToScheme(internalScheme))
+	apiextensionsinstall.Install(internalScheme)
+}
 
 const defaultIterations = 1000
 
@@ -20,7 +35,7 @@ func Fuzz(t *testing.T, scheme *runtime.Scheme, fuzzer *gofuzz.Fuzzer, crd *apie
 	}
 
 	internalcrd := &apiextensions.CustomResourceDefinition{}
-	if err := scheme.Convert(crd, internalcrd, runtime.InternalGroupVersioner); err != nil {
+	if err := internalScheme.Convert(crd, internalcrd, runtime.InternalGroupVersioner); err != nil {
 		t.Fatalf("Failed to convert v1.CustomResourceDefinition to internal type: %v", err)
 	}
 
@@ -42,4 +57,25 @@ func Fuzz(t *testing.T, scheme *runtime.Scheme, fuzzer *gofuzz.Fuzzer, crd *apie
 			ObjectNTimes(t, fuzzer, obj, structural, defaultIterations)
 		})
 	}
+}
+
+func DecodeFile(t *testing.T, path string) *apiextensionsv1.CustomResourceDefinition {
+	groupVersioner := schema.GroupVersions([]schema.GroupVersion{apiextensionsv1.SchemeGroupVersion})
+	serializer := apijson.NewSerializerWithOptions(apijson.DefaultMetaFactory, internalScheme, internalScheme, apijson.SerializerOptions{})
+	convertor := runtime.UnsafeObjectConvertor(internalScheme)
+	codec := versioning.NewCodec(serializer, serializer, convertor, internalScheme, internalScheme, internalScheme, groupVersioner, runtime.InternalGroupVersioner, internalScheme.Name())
+
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		t.Fatalf("Failed to read CRD input file %q: %v", path, err)
+		return nil
+	}
+
+	crd := &apiextensionsv1.CustomResourceDefinition{}
+	if _, _, err := codec.Decode(data, nil, crd); err != nil {
+		t.Fatalf("Failed to decode CRD data: %v", err)
+		return nil
+	}
+
+	return crd
 }
