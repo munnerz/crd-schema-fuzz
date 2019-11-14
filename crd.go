@@ -65,7 +65,7 @@ func DecodeFile(t *testing.T, path string) *apiextensionsv1.CustomResourceDefini
 		Yaml: true,
 	})
 	convertor := runtime.UnsafeObjectConvertor(internalScheme)
-	codec := versioning.NewCodec(serializer, serializer, convertor, internalScheme, internalScheme, internalScheme, groupVersioner, runtime.InternalGroupVersioner, internalScheme.Name())
+	codec := versioning.NewCodec(serializer, serializer, convertor, internalScheme, internalScheme, internalScheme, groupVersioner, groupVersioner, internalScheme.Name())
 
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
