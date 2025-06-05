@@ -1,8 +1,8 @@
 package crdfuzz
 
 import (
-	"io/ioutil"
 	"math/rand"
+	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -43,7 +43,7 @@ func SchemaFuzzTestForObject(t *testing.T, scheme *runtime.Scheme, obj runtime.O
 	)
 
 	t.Logf("Running CRD schema pruning fuzz test for object %v", obj.GetObjectKind())
-	for i := 0; i < iters; i++ {
+	for i := range iters {
 		fuzzed := obj.DeepCopyObject()
 		// fuzz *before* converting to unstructured, so we get typed fuzzing
 		fuzzer.Fill(fuzzed)
@@ -123,7 +123,7 @@ func SchemaFuzzTestForCRDWithPath(t *testing.T, scheme *runtime.Scheme, path str
 	convertor := runtime.UnsafeObjectConvertor(internalScheme)
 	codec := versioning.NewCodec(serializer, serializer, convertor, internalScheme, internalScheme, internalScheme, runtime.InternalGroupVersioner, runtime.InternalGroupVersioner, internalScheme.Name())
 
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("Failed to read CRD input file %q: %v", path, err)
 		return
