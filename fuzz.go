@@ -46,7 +46,7 @@ func SchemaFuzzTestForObject(t *testing.T, scheme *runtime.Scheme, obj runtime.O
 	for i := 0; i < iters; i++ {
 		fuzzed := obj.DeepCopyObject()
 		// fuzz *before* converting to unstructured, so we get typed fuzzing
-		fuzzer.Fuzz(fuzzed)
+		fuzzer.Fill(fuzzed)
 		unstructuredFuzzed, err := runtime.DefaultUnstructuredConverter.ToUnstructured(fuzzed)
 		if err != nil {
 			t.Fatalf("Failed to convert type to `runtime.Unstructured`: %v", err)
